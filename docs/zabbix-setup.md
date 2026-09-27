@@ -1,28 +1,19 @@
-# Zabbix 送信先の準備
+# Set up Zabbix
 
-Zabbix 7.0 以降で技術名が送信設定の `host` と一致するホストを作成する。
-`templates/picoruby_telemetry.yaml` をインポートしてホストへ割り当てると、下表の例が登録される。
-この YAML は公式の 7.0 エクスポート形式を基に作成したが、Docker 環境が利用できずインポートは未確認である。
-そのホストに、次のキーを持つ Zabbix トラッパー型アイテムを作成する。
+Create a host in Zabbix 7.0 or later whose technical host name matches the driver's `host` setting. Import `templates/picoruby_telemetry.yaml` and link it to the host, or create the following Zabbix trapper items manually. The template follows the Zabbix 7.0 export format, but its import has not been tested against a live server.
 
-| キー | 情報の型 |
+| Item key | Value type |
 | --- | --- |
-| `picoruby.log` | ログ |
-| `picoruby.metric[temperature]` | 数値（浮動小数） |
-| `picoruby.check[sensor]` | 数値（整数） |
-| `picoruby.check.msg[sensor]` | テキスト（`check_message_key: true` のとき） |
-| `picoruby.heartbeat` | 数値（整数、`heartbeat_sec` を有効にしたとき） |
+| `picoruby.log` | Log |
+| `picoruby.metric[temperature]` | Numeric float |
+| `picoruby.check[sensor]` | Numeric integer |
+| `picoruby.check.msg[sensor]` | Text, when `check_message_key: true` |
+| `picoruby.heartbeat` | Numeric integer, when `heartbeat_sec` is enabled |
 
-sender モードは TCP 10051 を使う。
-平文通信なので信頼できる LAN または近くのプロキシへ送信し、アイテムの「許可するホスト」で送信元を制限する。
-アイテム作成直後は Zabbix の設定キャッシュが更新されるまで待つ。
-チェックの説明文も保存する場合は、ドライバーに `check_message_key: true` を指定する。
-送信元ホストで `PicoTelemetry.flush` を呼び、Zabbix の「最新データ」で各値を確認する。
+Sender mode uses TCP port 10051. It sends plaintext, so use a trusted LAN or a nearby proxy. Restrict source addresses with each item's **Allowed hosts** setting. After creating items, allow time for the Zabbix configuration cache to update.
 
-`history.push` を使う場合は、対象ホストへの読み取り権限と `history.push` 呼び出し権限を持つユーザーの API トークンを発行する。
-アイテムの「許可するホスト」には Web フロントエンドから見た送信元 IP も含める。
-ドライバーには `mode: :history_push`、`api_url`、`api_token` を渡す。
-トークンはソースコードへ書き込まない。
+Set `check_message_key: true` on the driver to send check descriptions to the text item. Call `PicoTelemetry.flush` on the device, then inspect **Latest data** in Zabbix.
 
-応答の `failed` が増えた場合は、技術名、キー、値の型、「許可するホスト」を確認する。
-Zabbix sender の応答は失敗した項目の番号を返さないため、部分拒否の項目は再送しない。
+For `history.push`, issue an API token for a user with read access to the target host and permission to call `history.push`. Include the web frontend's source IP in **Allowed hosts**. Pass `mode: :history_push`, `api_url`, and `api_token` to the driver. Keep the token out of source files.
+
+If the response reports failed items, check the technical host name, item keys, value types, and **Allowed hosts**. Zabbix sender responses do not identify rejected item indexes, so partially rejected items are not retried.
