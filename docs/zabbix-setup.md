@@ -10,10 +10,14 @@ Zabbix 7.0 以降で技術名が送信設定の `host` と一致するホスト�
 | `picoruby.log` | ログ |
 | `picoruby.metric[temperature]` | 数値（浮動小数） |
 | `picoruby.check[sensor]` | 数値（整数） |
+| `picoruby.check.msg[sensor]` | テキスト（`check_message_key: true` のとき） |
+| `picoruby.heartbeat` | 数値（整数、`heartbeat_sec` を有効にしたとき） |
 
 sender モードは TCP 10051 を使う。
 平文通信なので信頼できる LAN または近くのプロキシへ送信し、アイテムの「許可するホスト」で送信元を制限する。
 アイテム作成直後は Zabbix の設定キャッシュが更新されるまで待つ。
+チェックの説明文も保存する場合は、ドライバーに `check_message_key: true` を指定する。
+送信元ホストで `PicoTelemetry.flush` を呼び、Zabbix の「最新データ」で各値を確認する。
 
 `history.push` を使う場合は、対象ホストへの読み取り権限と `history.push` 呼び出し権限を持つユーザーの API トークンを発行する。
 アイテムの「許可するホスト」には Web フロントエンドから見た送信元 IP も含める。

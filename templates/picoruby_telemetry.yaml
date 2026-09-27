@@ -44,3 +44,9 @@ zabbix_export:
               expression: 'nodata(/PicoRuby Telemetry/picoruby.heartbeat,5m)=1'
               name: PicoRuby heartbeat missing
               priority: HIGH
+        - uuid: 76506f74656c656d657472796d736701
+          name: Sensor check message
+          type: TRAP
+          key: 'picoruby.check.msg[sensor]'
+          delay: '0'
+          value_type: TEXT
