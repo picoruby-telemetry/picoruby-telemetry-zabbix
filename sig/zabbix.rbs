@@ -1,0 +1,7 @@
+class PicoTelemetry
+  module Zabbix
+    class Driver < PicoTelemetry::Driver::Base
+      def initialize: (?mode: Symbol, ?server: String?, ?port: Integer, ?host: String?, ?api_url: String?, ?api_token: String?, **untyped options) -> void
+    end
+  end
+end

@@ -1,0 +1,61 @@
+name: verify
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    env:
+      PICORUBY_ROOT: ${{ github.workspace }}/picoruby
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          path: ${{ github.event.repository.name }}
+      - if: github.event.repository.name != 'picoruby-telemetry'
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository_owner }}/picoruby-telemetry
+          path: picoruby-telemetry
+      - if: github.event.repository.name != 'picoruby-telemetry-transport'
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository_owner }}/picoruby-telemetry-transport
+          path: picoruby-telemetry-transport
+      - if: github.event.repository.name != 'picoruby-telemetry-zabbix'
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository_owner }}/picoruby-telemetry-zabbix
+          path: picoruby-telemetry-zabbix
+      - if: github.event.repository.name != 'picoruby-telemetry-mackerel'
+        uses: actions/checkout@v7
+        with:
+          repository: ${{ github.repository_owner }}/picoruby-telemetry-mackerel
+          path: picoruby-telemetry-mackerel
+      - uses: actions/checkout@v7
+        with:
+          repository: ydah/picoruby
+          ref: c487750b295b3a2a6e277d53cd523cf457028faf
+          submodules: recursive
+          path: picoruby
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '4.0'
+      - run: gem install rake rbs steep --no-document
+      - run: |
+          for gem in picoruby-telemetry picoruby-telemetry-transport picoruby-telemetry-zabbix picoruby-telemetry-mackerel; do
+            (cd "$gem" && ruby test/run.rb && rbs validate sig/*.rbs)
+          done
+      - run: cd picoruby-telemetry && steep check
+      - run: |
+          cd picoruby
+          MRUBY_CONFIG="$GITHUB_WORKSPACE/picoruby-telemetry/tools/picoruby-telemetry-build.rb" rake
+      - run: RUBY="$PWD/picoruby/bin/picoruby" ruby picoruby-telemetry/test/vm_run.rb
+      - run: RUBY="$PWD/picoruby/bin/picoruby" ruby picoruby-telemetry/test/network_integration.rb
+      - run: |
+          cd picoruby
+          MRUBY_CONFIG="$GITHUB_WORKSPACE/picoruby-telemetry/tools/femtoruby-telemetry-build.rb" rake
+      - run: RUBY="$PWD/picoruby/bin/femtoruby" ruby picoruby-telemetry/test/vm_run.rb
+      - run: RUBY="$PWD/picoruby/bin/femtoruby" ruby picoruby-telemetry/test/network_integration.rb

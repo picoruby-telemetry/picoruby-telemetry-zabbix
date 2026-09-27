@@ -1,0 +1,46 @@
+zabbix_export:
+  version: '7.0'
+  template_groups:
+    - uuid: 76506f74656c656d6574727967726f7570
+      name: Templates/Applications
+  templates:
+    - uuid: 76506f74656c656d6574727974656d70
+      template: PicoRuby Telemetry
+      name: PicoRuby Telemetry
+      groups:
+        - name: Templates/Applications
+      items:
+        - uuid: 76506f74656c656d657472796c6f6701
+          name: PicoRuby log
+          type: TRAP
+          key: picoruby.log
+          delay: '0'
+          value_type: LOG
+        - uuid: 76506f74656c656d657472796d657401
+          name: Temperature
+          type: TRAP
+          key: 'picoruby.metric[temperature]'
+          delay: '0'
+          value_type: FLOAT
+        - uuid: 76506f74656c656d6574727963686b01
+          name: Sensor check
+          type: TRAP
+          key: 'picoruby.check[sensor]'
+          delay: '0'
+          value_type: UNSIGNED
+          triggers:
+            - uuid: 76506f74656c656d6574727974726701
+              expression: 'last(/PicoRuby Telemetry/picoruby.check[sensor])>=2'
+              name: PicoRuby sensor check critical
+              priority: HIGH
+        - uuid: 76506f74656c656d6574727968627401
+          name: PicoRuby heartbeat
+          type: TRAP
+          key: picoruby.heartbeat
+          delay: '0'
+          value_type: UNSIGNED
+          triggers:
+            - uuid: 76506f74656c656d6574727974726702
+              expression: 'nodata(/PicoRuby Telemetry/picoruby.heartbeat,5m)=1'
+              name: PicoRuby heartbeat missing
+              priority: HIGH
