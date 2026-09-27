@@ -35,6 +35,14 @@ class ZabbixTest < Picotest::Test
     end
   end
 
+  def test_sender_rejects_inconsistent_counts
+    parser = PicoTelemetry::Zabbix::SenderResponseParser
+    body = '{"response":"success","info":"processed: 2; failed: 0; total: 3; seconds spent: 0.01"}'
+    assert_equal(:retry, parser.parse(body, 3).status)
+    body = '{"response":"success","info":"processed: 3; failed: 0; total: 2; seconds spent: 0.01"}'
+    assert_equal(:retry, parser.parse(body, 3).status)
+  end
+
   class BufferIO
     def initialize(data); @data = data; end
     def read(count)
@@ -67,6 +75,16 @@ class ZabbixTest < Picotest::Test
     assert_equal(2, JSON.parse(mock.payload)['data'].size)
   end
 
+  def test_same_key_timestamp_rolls_to_next_second
+    first = PicoTelemetry::Record.metric('temperature', 1)
+    second = PicoTelemetry::Record.metric('temperature', 2)
+    first.epoch_sec = second.epoch_sec = 1_790_000_000
+    first.nsec = second.nsec = 999_999_999
+    fields = PicoTelemetry::Zabbix::Codec.fields([first, second], 2, 'device', PicoTelemetry::Zabbix::KeyMapper.new)
+    assert_equal([1_790_000_000, 999_999_999], [fields[0]['clock'], fields[0]['ns']])
+    assert_equal([1_790_000_001, 0], [fields[1]['clock'], fields[1]['ns']])
+  end
+
   def test_history_rejection_maps_message_to_check
     mock = PicoTelemetry::Transport::Mock.new
     mock.enqueue_response(200, '{"result":{"response":"success","data":[{}, {"error":"missing item"}]}}')
@@ -79,6 +97,12 @@ class ZabbixTest < Picotest::Test
     assert_equal(:partial, result.status)
     assert_equal(0, result.accepted)
     assert_equal([0], result.rejected_indexes)
+  end
+
+  def test_driver_inspect_hides_api_token
+    driver = PicoTelemetry::Zabbix::Driver.new(mode: :history_push, host: 'device',
+      api_url: 'https://localhost/api_jsonrpc.php', api_token: 'private-token')
+    assert_equal(false, driver.inspect.include?('private-token'))
   end
 
   class SenderMock

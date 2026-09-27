@@ -20,4 +20,6 @@ PicoTelemetry.flush
 The sender protocol is plaintext. Use it on a trusted LAN or through a
 nearby proxy. `history.push` supports HTTPS with an API token.
 
-Live Zabbix delivery and template import have not been tested. MIT License.
+The bundled template and both delivery modes were verified against local
+Zabbix 7.0.31 and 7.4.15. Run `tools/live_test.rb` to repeat the integration check.
+Device delivery has not been tested. MIT License.

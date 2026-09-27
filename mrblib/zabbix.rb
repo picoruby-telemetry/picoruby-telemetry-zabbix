@@ -86,10 +86,16 @@ class PicoTelemetry
         item = { 'host' => host, 'key' => key, 'value' => value }
         if record.epoch_sec
           second = record.epoch_sec
-          identity = "#{key}:#{second}"
           nsec = record.nsec
-          previous = seen[identity]
-          nsec = previous + 1 if previous && nsec <= previous
+          identity = "#{key}:#{second}"
+          while seen[identity] && nsec <= seen[identity]
+            nsec = seen[identity] + 1
+            if nsec == 1_000_000_000
+              second += 1
+              nsec = 0
+              identity = "#{key}:#{second}"
+            end
+          end
           seen[identity] = nsec
           item['clock'] = second
           item['ns'] = nsec
@@ -122,15 +128,21 @@ class PicoTelemetry
         return Result.drop('sender rejected request') unless data['response'] == 'success'
         info = data['info'] || ''
         parts = info.split('; ')
-        failed = nil
+        processed = failed = total = nil
         i = 0
         while i < parts.size
           pair = parts[i].split(': ')
-          failed = pair[1].to_i if pair[0] == 'failed'
+          if pair[0] == 'processed' || pair[0] == 'failed' || pair[0] == 'total'
+            return Result.retry('invalid sender count') unless pair[1] && pair[1].to_i.to_s == pair[1]
+            value = pair[1].to_i
+            processed = value if pair[0] == 'processed'
+            failed = value if pair[0] == 'failed'
+            total = value if pair[0] == 'total'
+          end
           i += 1
         end
-        return Result.retry('missing sender failed count') unless failed && failed >= 0 && failed <= count
-        failed == 0 ? Result.ok(count) : Result.partial(count - failed)
+        return Result.retry('inconsistent sender counts') unless processed && failed && total == count && processed + failed == total
+        failed == 0 ? Result.ok(count) : Result.partial(processed)
       rescue StandardError => error
         Result.retry(error)
       end
@@ -181,6 +193,7 @@ class PicoTelemetry
         @id = 0
       end
       def name; 'zabbix'; end
+      def inspect; '#<PicoTelemetry::Zabbix::Driver [REDACTED]>'; end
       def supports?(kind); kind == :log || kind == :metric || kind == :check; end
       def batch_max_records; @batch_max_records; end
       def batch_max_bytes; @batch_max_bytes; end

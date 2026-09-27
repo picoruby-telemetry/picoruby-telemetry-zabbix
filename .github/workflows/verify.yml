@@ -56,6 +56,7 @@ jobs:
       - run: RUBY="$PWD/picoruby/bin/picoruby" ruby picoruby-telemetry/test/network_integration.rb
       - run: |
           cd picoruby
+          MRUBY_CONFIG="$GITHUB_WORKSPACE/picoruby-telemetry/tools/femtoruby-telemetry-build.rb" rake clean
           MRUBY_CONFIG="$GITHUB_WORKSPACE/picoruby-telemetry/tools/femtoruby-telemetry-build.rb" rake
       - run: RUBY="$PWD/picoruby/bin/femtoruby" ruby picoruby-telemetry/test/vm_run.rb
       - run: RUBY="$PWD/picoruby/bin/femtoruby" ruby picoruby-telemetry/test/network_integration.rb
